@@ -3,7 +3,7 @@
 #include "vladlib/vladlib.h"
 #include "vladlib/vmath.h"
 
-void set_color_to_objects(const VL_Color* color);
+//void set_color_to_objects(const VL_Color* color);
 void game_run();
 void game_update();
 void game_draw();

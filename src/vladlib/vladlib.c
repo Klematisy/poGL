@@ -8,10 +8,17 @@ static uint32_t MAIN_2D_IBO;
 
 static uint32_t BASE_2D_SHADER;
 
+ObjectOfData main_data;
+
 static uint32_t rect_indices[] = {
     0, 1, 2,
     2, 3, 0
 };
+
+void BindObjectOfData(const ObjectOfData *ood) {
+    bind_vao(ood->vao);
+    use_program(ood->shader_program);
+}
 
 static void normalize_points(float *array, uint32_t size) {
     for (uint32_t i = 0; i < size; i++) {
@@ -33,6 +40,8 @@ static void buffers_init() {
     unbind_vao();
     unbind_ibo();
     unbind_vbo();
+
+    main_data = (ObjectOfData) {MAIN_2D_VAO, BASE_2D_SHADER};
 }
 
 static void specify_opengl_version() {
@@ -100,11 +109,6 @@ void vl_deinit_lib(void) {
 
 //------------------------DRAW------------------------//
 
-void vl_draw_square(float x, float y, float width, VL_Color color) {
-    VL_Rect rect = {x, y, width, width, color};
-    vl_draw_rect(&rect);
-}
-
 void vl_draw_rect(VL_Rect *rect) {
     float vertices[] = {
             rect->x,                rect->y,
@@ -116,8 +120,7 @@ void vl_draw_rect(VL_Rect *rect) {
     normalize_points(vertices, sizeof(vertices) / sizeof(float));
     fill_dynamic_vbo(MAIN_2D_VBO, sizeof(vertices), vertices);
 
-    bind_vao(MAIN_2D_VAO);
-    use_program(BASE_2D_SHADER);
+    BindObjectOfData(&main_data);
 
     add_uniform3f(BASE_2D_SHADER, "color", rect->color.r, rect->color.g, rect->color.b);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);

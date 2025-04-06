@@ -14,12 +14,6 @@ typedef struct Ball {
     uint32_t points;
 } Ball;
 
-typedef struct TransitionVector {
-    Vec2 vector;
-    float length;
-} TransitionVector;
-
-static TransitionVector t_vector;
 static Ball ball;
 
 static VL_Rect up_brick;
@@ -33,13 +27,20 @@ static VL_Rect background;
 /* MAIN GAME VARIABLES */
 bool game_is_running = true;
 static clock_t start;
-float color_gap = 0.0f;
+uint32_t color_gap = 0;
 float visible_part = 0.02f;
-bool elapsed_change = false;
 /* MAIN GAME VARIABLES */
 
 static int get_random(int min, int max) {
     return min + rand() % (max - min + 1);
+}
+
+static void set_color_to_objects(const VL_Color *obj_color) {
+    ball.rectangle.color = *obj_color;
+    up_brick.color       = *obj_color;
+    down_brick.color     = *obj_color;
+    left_brick.color     = *obj_color;
+    right_brick.color    = *obj_color;
 }
 
 static void color_calculation() {
@@ -53,6 +54,50 @@ static void color_calculation() {
     background.color = background_color;
     set_color_to_objects(&(VL_Color){background_color.r * 0.6f, background_color.g * 0.6f, background_color.b * 0.6f});
     //--------------COLOR--------------//
+}
+
+static void collision(bool major_condition, bool minor_condition, VL_Rect *brick) {
+    Point ball_point  = {ball.rectangle.x + ball.rectangle.width  / 2,
+                         ball.rectangle.y + ball.rectangle.height / 2};
+    float speed = 70;
+    if (major_condition && minor_condition) {
+        ball.points++;
+        Point brick_point = {brick->x + brick->width  / 2,
+                             brick->y + brick->height / 2};
+        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
+
+        ball.x_speed = vector.x / speed;
+        ball.y_speed = vector.y / speed;
+
+    } else if (major_condition) {
+        game_is_running = false;
+    }
+}
+
+static void ball_collision() {
+    bool left_brick_coll_x  = ball.rectangle.x < (left_brick.x + left_brick.width);
+    bool left_brick_coll_y  =
+        (ball.rectangle.y < left_brick.y + ball.rectangle.height + left_brick.height) &&
+        (ball.rectangle.y + ball.rectangle.height > left_brick.y);
+    collision(left_brick_coll_x, left_brick_coll_y, &left_brick);
+
+    bool right_brick_coll_x = right_brick.x < (ball.rectangle.x + ball.rectangle.width);
+    bool right_brick_coll_y =
+        (ball.rectangle.y < right_brick.y + right_brick.height) &&
+        (ball.rectangle.y + ball.rectangle.height > right_brick.y);
+    collision(right_brick_coll_x, right_brick_coll_y, &right_brick);
+
+    bool up_coll_x =
+            (ball.rectangle.x < up_brick.x + up_brick.width) &&
+            (ball.rectangle.x + ball.rectangle.width > up_brick.x);
+    bool up_coll_y = up_brick.y < (ball.rectangle.y + ball.rectangle.height);
+    collision(up_coll_y, up_coll_x, &up_brick);
+
+    bool down_coll_x =
+            (ball.rectangle.x < down_brick.x + down_brick.width) &&
+            (ball.rectangle.x + ball.rectangle.width > down_brick.x);
+    bool down_coll_y = ball.rectangle.y < (down_brick.y + down_brick.height);
+    collision(down_coll_y, down_coll_x, &down_brick);
 }
 
 static void bricks_transition(float *x_speed, float *y_speed) {
@@ -79,90 +124,6 @@ static void bricks_transition(float *x_speed, float *y_speed) {
     left_brick.y  += *y_speed;
 }
 
-static void collision(bool major_condition, bool minor_condition, float *brick) {
-    if (major_condition && minor_condition) {
-        *brick *= -1.0f;
-        ball.points++;
-        if (ball.points % 2 == 0) {
-            ball.x_speed *= 1.0f;
-            ball.y_speed *= 1.0f;
-        }
-    } else if (major_condition) {
-        game_is_running = false;
-    }
-}
-
-static void ball_collision() {
-    Point ball_point  = {ball.rectangle.x + ball.rectangle.width  / 2,
-                         ball.rectangle.y + ball.rectangle.height / 2};
-    float speed = 70;
-
-    bool left_brick_coll_x  = ball.rectangle.x < (left_brick.x + left_brick.width);
-    bool left_brick_coll_y  =
-        (ball.rectangle.y < left_brick.y + ball.rectangle.height + left_brick.height) &&
-        (ball.rectangle.y + ball.rectangle.height > left_brick.y);
-    if (left_brick_coll_x && left_brick_coll_y) {
-        ball.points++;
-        Point brick_point = {left_brick.x + left_brick.width  / 2,
-                             left_brick.y + left_brick.height / 2};
-        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
-
-        ball.x_speed = vector.x / speed;
-        ball.y_speed = vector.y / speed;
-
-    } else if (left_brick_coll_x) {
-        game_is_running = false;
-    }
-
-    bool right_brick_coll_x = right_brick.x < (ball.rectangle.x + ball.rectangle.width);
-    bool right_brick_coll_y =
-        (ball.rectangle.y < right_brick.y + right_brick.height) &&
-        (ball.rectangle.y + ball.rectangle.height > right_brick.y);
-    if (right_brick_coll_x && right_brick_coll_y) {
-        ball.points++;
-        Point brick_point = {right_brick.x + right_brick.width  / 2,
-                             right_brick.y + right_brick.height / 2};
-        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
-
-        ball.x_speed = vector.x / speed;
-        ball.y_speed = vector.y / speed;
-    } else if (right_brick_coll_x) {
-        game_is_running = false;
-    }
-
-    bool up_coll_y = up_brick.y < (ball.rectangle.y + ball.rectangle.height);
-    bool up_coll_x =
-            (ball.rectangle.x < up_brick.x + up_brick.width) &&
-            (ball.rectangle.x + ball.rectangle.width > up_brick.x);
-    if (up_coll_y && up_coll_x) {
-        ball.points++;
-        Point brick_point = {up_brick.x + up_brick.width  / 2,
-                             up_brick.y + up_brick.height / 2};
-        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
-
-        ball.x_speed = vector.x / speed;
-        ball.y_speed = vector.y / speed;
-    } else if (up_coll_y) {
-        game_is_running = false;
-    }
-
-    bool down_coll_y = ball.rectangle.y < (down_brick.y + down_brick.height);
-    bool down_coll_x =
-            (ball.rectangle.x < down_brick.x + down_brick.width) &&
-            (ball.rectangle.x + ball.rectangle.width > down_brick.x);
-    if (down_coll_y && down_coll_x) {
-        ball.points++;
-        Point brick_point = {down_brick.x + down_brick.width  / 2,
-                             down_brick.y + down_brick.height / 2};
-        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
-
-        ball.x_speed = vector.x / speed;
-        ball.y_speed = vector.y / speed;
-    } else if (down_coll_y) {
-        game_is_running = false;
-    }
-}
-
 void game_update() {
     color_calculation();
 
@@ -187,15 +148,7 @@ void game_draw() {
     vl_draw_rect(&right_brick);
 }
 
-void set_color_to_objects(const VL_Color *obj_color) {
-    ball.rectangle.color = *obj_color;
-    up_brick.color       = *obj_color;
-    down_brick.color     = *obj_color;
-    left_brick.color     = *obj_color;
-    right_brick.color    = *obj_color;
-}
-
-void meshes_init() {
+static void meshes_init() {
     background = (VL_Rect) {0.0f, 0.0f, 1.0f, 1.0f, (VL_Color) {0.1f, 0.4f, 0.6f}};
     VL_Color *bc = &background.color;
     VL_Color objects_color = (VL_Color) {1.0f - bc->r, 1.0f - bc->g, 1.0f - bc->b};
@@ -204,7 +157,6 @@ void meshes_init() {
     float length = 0.25f; //
 
     ball.rectangle = (VL_Rect) {0.5f - 0.04f / 2, 0.5f - 0.04f / 2, 0.04f, 0.04f, objects_color};;
-//    printf("%f\n", (ball.rectangle).x);
 
     down_brick = (VL_Rect) {0.5f - length / 2, 0.0f - gbbab + visible_part, length, gbbab, objects_color};
 
@@ -223,17 +175,12 @@ static void init_random_variables() {
     start = clock();
     color_gap += get_random(0, 10);
 
-    float start_angle = get_random(1, 359);
-    start_angle = 20;
-//    printf("%f", start_angle);
+    int start_angle = get_random(1, 359);
     Vec2 vector = {1, 0};
-    vector = rotation_matrix(vector, start_angle * M_PI / 180.0f);
+    vector = rotation_matrix(vector, (float)(start_angle * M_PI / 180.0f));
 
     ball.x_speed = vector.x / 400;
     ball.y_speed = vector.y / 400;
-
-
-
     ball.points = 0;
 }
 

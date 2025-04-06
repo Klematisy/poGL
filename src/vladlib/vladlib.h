@@ -20,13 +20,10 @@ typedef int bool;
 
 typedef GLFWwindow* MAIN_LIB_WINDOW;
 
-typedef struct Buffer {
-    uint32_t vbo;
+typedef struct ObjectOfData {
     uint32_t vao;
-    uint32_t ibo;
-
     uint32_t shader_program;
-} Buffer;
+} ObjectOfData;
 
 typedef struct VL_Color {
     float r;
@@ -55,6 +52,9 @@ typedef struct Object2 {
     float y;
 } Object2;
 
+// UTILS
+void BindObjectOfData(const ObjectOfData *ood);
+
 // INIT LIB
 void* vl_init_lib(uint16_t width, uint16_t height, const char* window_name);
 void  vl_deinit_lib(void);
@@ -65,7 +65,6 @@ void vl_draw(void);
 void vl_end_draw(void);
 
 // DRAW FUNCTIONS
-void vl_draw_square(float x, float y, float width, VL_Color color);
 void vl_draw_rect(VL_Rect *rect);
 
 // INPUT FUNCTIONS
