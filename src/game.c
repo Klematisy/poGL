@@ -4,10 +4,6 @@
 
 #include <math.h>
 
-#include "game.h"
-#include "vladlib/vladlib.h"
-#include "vladlib/vmath.h"
-
 /* MAIN GAME OBJECTS */
 typedef struct Ball {
     VL_Rect rectangle;
@@ -18,6 +14,12 @@ typedef struct Ball {
     uint32_t points;
 } Ball;
 
+typedef struct TransitionVector {
+    Vec2 vector;
+    float length;
+} TransitionVector;
+
+static TransitionVector t_vector;
 static Ball ball;
 
 static VL_Rect up_brick;
@@ -33,6 +35,7 @@ bool game_is_running = true;
 static clock_t start;
 float color_gap = 0.0f;
 float visible_part = 0.02f;
+bool elapsed_change = false;
 /* MAIN GAME VARIABLES */
 
 static int get_random(int min, int max) {
@@ -44,7 +47,7 @@ static void color_calculation() {
     clock_t end = clock();
     float elapsed = (float)(end - start) / CLOCKS_PER_SEC / 2;
 
-    VL_Color color = {(float)(sin(elapsed * M_PI + color_gap) + 1) / 4, elapsed / 10, (float)(cos(elapsed * M_PI + color_gap) + 1) / 4};
+    VL_Color color = {(float)(sin(elapsed * M_PI + color_gap) + 1) / 4, ((float)sin(elapsed * 4) + 1) / 4, (float)(cos(elapsed * M_PI + color_gap) + 1) / 4};
     VL_Color background_color = {1.0f - color.r, 1.0f - color.g, 1.0f - color.b};
 
     background.color = background_color;
@@ -76,18 +79,37 @@ static void bricks_transition(float *x_speed, float *y_speed) {
     left_brick.y  += *y_speed;
 }
 
+static void collision(bool major_condition, bool minor_condition, float *brick) {
+    if (major_condition && minor_condition) {
+        *brick *= -1.0f;
+        ball.points++;
+        if (ball.points % 2 == 0) {
+            ball.x_speed *= 1.0f;
+            ball.y_speed *= 1.0f;
+        }
+    } else if (major_condition) {
+        game_is_running = false;
+    }
+}
+
 static void ball_collision() {
+    Point ball_point  = {ball.rectangle.x + ball.rectangle.width  / 2,
+                         ball.rectangle.y + ball.rectangle.height / 2};
+    float speed = 70;
+
     bool left_brick_coll_x  = ball.rectangle.x < (left_brick.x + left_brick.width);
     bool left_brick_coll_y  =
         (ball.rectangle.y < left_brick.y + ball.rectangle.height + left_brick.height) &&
         (ball.rectangle.y + ball.rectangle.height > left_brick.y);
     if (left_brick_coll_x && left_brick_coll_y) {
-        ball.x_speed *= -1.0f;
         ball.points++;
-        if (ball.points % 2 == 0) {
-            ball.x_speed *= 1.2f;
-            ball.y_speed *= 1.2f;
-        }
+        Point brick_point = {left_brick.x + left_brick.width  / 2,
+                             left_brick.y + left_brick.height / 2};
+        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
+
+        ball.x_speed = vector.x / speed;
+        ball.y_speed = vector.y / speed;
+
     } else if (left_brick_coll_x) {
         game_is_running = false;
     }
@@ -97,12 +119,13 @@ static void ball_collision() {
         (ball.rectangle.y < right_brick.y + right_brick.height) &&
         (ball.rectangle.y + ball.rectangle.height > right_brick.y);
     if (right_brick_coll_x && right_brick_coll_y) {
-        ball.x_speed *= -1.0f;
         ball.points++;
-        if (ball.points % 2 == 0) {
-            ball.x_speed *= 1.2f;
-            ball.y_speed *= 1.2f;
-        }
+        Point brick_point = {right_brick.x + right_brick.width  / 2,
+                             right_brick.y + right_brick.height / 2};
+        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
+
+        ball.x_speed = vector.x / speed;
+        ball.y_speed = vector.y / speed;
     } else if (right_brick_coll_x) {
         game_is_running = false;
     }
@@ -111,13 +134,14 @@ static void ball_collision() {
     bool up_coll_x =
             (ball.rectangle.x < up_brick.x + up_brick.width) &&
             (ball.rectangle.x + ball.rectangle.width > up_brick.x);
-    if (up_coll_x && up_coll_y) {
-        ball.y_speed *= -1.0f;
+    if (up_coll_y && up_coll_x) {
         ball.points++;
-        if (ball.points % 2 == 0) {
-            ball.x_speed *= 1.2f;
-            ball.y_speed *= 1.2f;
-        }
+        Point brick_point = {up_brick.x + up_brick.width  / 2,
+                             up_brick.y + up_brick.height / 2};
+        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
+
+        ball.x_speed = vector.x / speed;
+        ball.y_speed = vector.y / speed;
     } else if (up_coll_y) {
         game_is_running = false;
     }
@@ -126,13 +150,14 @@ static void ball_collision() {
     bool down_coll_x =
             (ball.rectangle.x < down_brick.x + down_brick.width) &&
             (ball.rectangle.x + ball.rectangle.width > down_brick.x);
-    if (down_coll_x && down_coll_y) {
-        ball.y_speed *= -1.0f;
+    if (down_coll_y && down_coll_x) {
         ball.points++;
-        if (ball.points % 2 == 0) {
-            ball.x_speed *= 1.2f;
-            ball.y_speed *= 1.2f;
-        }
+        Point brick_point = {down_brick.x + down_brick.width  / 2,
+                             down_brick.y + down_brick.height / 2};
+        Vec2 vector = {ball_point.x - brick_point.x, ball_point.y - brick_point.y};
+
+        ball.x_speed = vector.x / speed;
+        ball.y_speed = vector.y / speed;
     } else if (down_coll_y) {
         game_is_running = false;
     }
@@ -199,13 +224,15 @@ static void init_random_variables() {
     color_gap += get_random(0, 10);
 
     float start_angle = get_random(1, 359);
-//    float start_angle = 90;
+    start_angle = 20;
 //    printf("%f", start_angle);
     Vec2 vector = {1, 0};
     vector = rotation_matrix(vector, start_angle * M_PI / 180.0f);
 
     ball.x_speed = vector.x / 400;
     ball.y_speed = vector.y / 400;
+
+
 
     ball.points = 0;
 }

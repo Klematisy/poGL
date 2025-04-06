@@ -2,6 +2,7 @@ cmake_minimum_required(VERSION 3.28)
 project(vladlib C)
 
 set(CMAKE_C_STANDARD 11)
+set(CMAKE_CXX_COMPILER /usr/bin/clang++)
 
 find_package(OpenGL REQUIRED)
 include_directories(vladlib deps/include)
