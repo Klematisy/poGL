@@ -32,5 +32,5 @@ float abv(Vec2 v1, Vec2 v2) {
 }
 
 float length(Vec2 vector) {
-    return sqrt(vector.x * vector.x + vector.y + vector.y);
+    return sqrtf(vector.x * vector.x + vector.y * vector.y);
 }

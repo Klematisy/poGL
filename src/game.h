@@ -3,18 +3,21 @@
 #include "vladlib/vladlib.h"
 #include "vladlib/vmath.h"
 
-//void set_color_to_objects(const VL_Color* color);
-void game_run();
+static void set_color_to_objects(const VL_Color* color);
+static void color_calculation();
+static uint32_t collision(bool major_condition, bool minor_condition, VL_Rect *brick);
+static void ball_collision_w_bricks();
+static void bricks_transition();
+static float set_ball_angle();
+static void respawn();
+
 void game_update();
+
 void game_draw();
+
+static void meshes_init();
+static void init_random_variables();
+
 void game_init();
 
-static float compare_to_axis(Vec2 axis_vec, Vec2 usually_vec) {
-    float result = abv(axis_vec, usually_vec);
-    if (usually_vec.y < axis_vec.y) {
-        result += M_PI;
-        printf("lol\n");
-    }
-
-    return result;
-}
+void game_run();
