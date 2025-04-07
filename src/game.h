@@ -9,6 +9,7 @@ static uint32_t collision(bool major_condition, bool minor_condition, VL_Rect *b
 static void ball_collision_w_bricks();
 static void bricks_transition();
 static float set_ball_angle();
+static void check_end_game();
 static void respawn();
 
 void game_update();

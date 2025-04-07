@@ -74,10 +74,8 @@ static uint32_t collision(bool major_condition, bool minor_condition, VL_Rect *b
         ball.x_speed = vector.x * lambda / speed;
         ball.y_speed = vector.y * lambda / speed;
 
-        printf("We were here!\n");
+//        printf("We were here!\n");
         return 1;
-    } else if (major_condition) {
-//        enable_control = false;
     }
     return 0;
 }
@@ -143,7 +141,7 @@ static void bricks_transition() {
     }
 
     if (!enable_control) {
-        acceleration *= 0.94f;
+        acceleration *= 0.95f;
     }
 
     up_brick.x    += x_speed * acceleration;
@@ -166,7 +164,17 @@ static float set_ball_angle() {
     return length(vector);
 }
 
+static void check_end_game() {
+    if (ball.rectangle.x > 1.0f
+     || ball.rectangle.x + ball.rectangle.width < 0.0f
+     || ball.rectangle.y > 1.0f
+     || ball.rectangle.y + ball.rectangle.height < 0.0f) {
+        enable_control = false;
+    }
+}
+
 static void respawn() {
+    check_end_game();
     Point point1 = {0.5f, 0.5f};
     Point point2 = {ball.rectangle.x, ball.rectangle.y};
     Vec2 vector  = {point2.x - point1.x, point2.y - point1.y};
