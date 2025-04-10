@@ -16,7 +16,7 @@ void game_update();
 
 void game_draw();
 
-static void meshes_init();
+static void meshes_init(const VL_Color *background_color, const VL_Color *objects_color);
 static void init_random_variables();
 
 void game_init();

@@ -72,3 +72,4 @@ bool vl_left_pressed(void);
 bool vl_up_pressed(void);
 bool vl_down_pressed(void);
 bool vl_right_pressed(void);
+bool vl_esc_pressed(void);

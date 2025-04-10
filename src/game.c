@@ -1,6 +1,6 @@
 #include "game.h"
 #include <stdlib.h>
-#include <time.h>
+#include <sys/time.h>
 
 #include <math.h>
 
@@ -25,13 +25,14 @@ static VL_Rect background;
 /* MAIN GAME OBJECTS */
 
 /* MAIN GAME VARIABLES */
-bool game_is_running = true;
-bool enable_control  = true;
-static clock_t start;
-uint32_t color_gap = 0;
-float acceleration = 1.0f;
-float velocity_length = 0.0f;
-float epsilone = 0.01f;
+static bool game_is_running = true;
+static bool enable_control  = true;
+static clock_t start_time_of_color;
+static uint32_t color_gap = 0;
+static float acceleration = 1.0f;
+static float velocity_length = 0.0f;
+static float epsilone = 0.01f;
+static struct timeval fps_start, fps_end;
 /* MAIN GAME VARIABLES */
 
 static int get_random(int min, int max) {
@@ -49,9 +50,9 @@ static void set_color_to_objects(const VL_Color *obj_color) {
 static void color_calculation() {
     //--------------COLOR--------------//
     clock_t end = clock();
-    float elapsed = (float)(end - start) / CLOCKS_PER_SEC / 2;
+    float elapsed = (float)(end - start_time_of_color) / CLOCKS_PER_SEC / 8;
 
-    VL_Color color = {(sinf(elapsed * M_PI + color_gap) + 1) / 4, (sinf(elapsed * 4) + 1) / 4, (float)(cosf(elapsed * M_PI + color_gap) + 1) / 4};
+    VL_Color color = {(sinf(elapsed * M_PI + color_gap) + 1) / 4, (sinf(elapsed * color_gap) + 1) / 4, (float)(cosf(elapsed * M_PI + color_gap) + 1) / 4};
     VL_Color background_color = {1.0f - color.r, 1.0f - color.g, 1.0f - color.b};
 
     background.color = background_color;
@@ -62,7 +63,7 @@ static void color_calculation() {
 static uint32_t collision(bool major_condition, bool minor_condition, VL_Rect *brick) {
     Point ball_point  = {ball.rectangle.x + ball.rectangle.width  / 2,
                          ball.rectangle.y + ball.rectangle.height / 2};
-    float speed = 300;
+    float speed = 150;
     if (major_condition && minor_condition) {
         ball.points++;
         Point brick_point = {brick->x + brick->width  / 2,
@@ -124,20 +125,22 @@ static void bricks_transition() {
     float x_speed = 0.0f;
     float y_speed = 0.0f;
 
+    float speed = 0.018f;
+
     if (vl_left_pressed() && down_brick.x > 0) {
-        x_speed = -0.009f;
+        x_speed = -speed;
     }
 
     if (vl_right_pressed() && down_brick.x + down_brick.width < 1.0f) {
-        x_speed = 0.009f;
+        x_speed = speed;
     }
 
     if (vl_up_pressed() && right_brick.y + right_brick.height < 1.0f) {
-        y_speed = 0.009f;
+        y_speed = speed;
     }
 
     if (vl_down_pressed() && right_brick.y > 0) {
-        y_speed = -0.009f;
+        y_speed = -speed;
     }
 
     if (!enable_control) {
@@ -153,18 +156,21 @@ static void bricks_transition() {
 
 static float set_ball_angle() {
     int start_angle = get_random(1, 359);
-//    start_angle = 315;
     Vec2 vector = {1, 0};
     vector = rotation_matrix(vector, (float)(start_angle * M_PI / 180.0f));
 
-    ball.x_speed = vector.x / 300;
-    ball.y_speed = vector.y / 300;
+    ball.x_speed = vector.x / 150;
+    ball.y_speed = vector.y / 150;
     ball.points = 0;
 
     return length(vector);
 }
 
 static void check_end_game() {
+    if (vl_esc_pressed()) {
+        game_is_running = false;
+    }
+
     if (ball.rectangle.x > 1.0f
      || ball.rectangle.x + ball.rectangle.width < 0.0f
      || ball.rectangle.y > 1.0f
@@ -179,12 +185,14 @@ static void respawn() {
     Point point2 = {ball.rectangle.x, ball.rectangle.y};
     Vec2 vector  = {point2.x - point1.x, point2.y - point1.y};
     if (length(vector) >= 1.0f) {
-        ball.rectangle.x = 0.5f - ball.rectangle.width  / 2;
-        ball.rectangle.y = 0.5f - ball.rectangle.height / 2;
-        enable_control = true;
+        ball.rectangle.x = 0.5f - ball.rectangle.width;
+        ball.rectangle.y = 0.5f - ball.rectangle.height;
 
         acceleration = 1.0f;
+        enable_control = true;
+
         set_ball_angle();
+        ball.points = 0;
     }
 }
 
@@ -210,39 +218,56 @@ void game_draw() {
     vl_draw_rect(&right_brick);
 }
 
-static void meshes_init() {
-    background = (VL_Rect) {0.0f, 0.0f, 1.0f, 1.0f, (VL_Color) {0.1f, 0.4f, 0.6f}};
-    VL_Color *bc = &background.color;
-    VL_Color objects_color = (VL_Color) {1.0f - bc->r, 1.0f - bc->g, 1.0f - bc->b};
+static void meshes_init(const VL_Color *background_color, const VL_Color *objects_color) {
+    background = (VL_Rect) {0.0f, 0.0f, 1.0f, 1.0f, *background_color};
 
     float gbbab  = 0.02f; // gab between gap and board
     float length = 0.25f; //
 
-    ball.rectangle = (VL_Rect) {0.5f - 0.04f / 2, 0.5f - 0.04f / 2, 0.04f, 0.04f, objects_color};;
+    ball.rectangle = (VL_Rect) {0.5f - 0.04f / 2, 0.5f - 0.04f / 2, 0.04f, 0.04f, *objects_color};;
 
-    down_brick = (VL_Rect) {0.5f - length / 2, 0.0f, length, gbbab, objects_color};
+    down_brick = (VL_Rect) {0.5f - length / 2, 0.0f, length, gbbab, *objects_color};
 
     up_brick   = down_brick;
     up_brick.y = 1.0f - gbbab;
 
-    right_brick = (VL_Rect) {1.0f - gbbab, 0.5f - length / 2, gbbab, length, objects_color};
+    right_brick = (VL_Rect) {1.0f - gbbab, 0.5f - length / 2, gbbab, length, *objects_color};
 
     left_brick   = right_brick;
     left_brick.x = 0.0f;
+
+    acceleration = 1.0f;
+    enable_control = true;
 }
 
 static void init_random_variables() {
     srand(time(NULL));
 
-    start = clock();
+    start_time_of_color = clock();
     color_gap += get_random(0, 10);
 
     velocity_length = set_ball_angle();
 }
 
 void game_init() {
-    meshes_init();
+    VL_Color col = {0.1f, 0.4f, 0.6f};
+    meshes_init(&col, &(VL_Color) {1.0f - col.r, 1.0f - col.g, 1.0f - col.b});
     init_random_variables();
+
+    /* fps init */
+    gettimeofday(&fps_start, NULL);
+}
+
+static bool fps(float frames) {
+    float elapsed_time = (fps_end.tv_sec - fps_start.tv_sec) +
+                         (fps_end.tv_usec - fps_start.tv_usec) / 1e6;
+    gettimeofday(&fps_end, NULL);
+
+    if (1.0f / frames < elapsed_time) {
+        gettimeofday(&fps_start, NULL);
+        return true;
+    }
+    return false;
 }
 
 void game_run() {
@@ -250,6 +275,10 @@ void game_run() {
 
     /*     ****MAIN LOOP****     */
     while (vl_window_open() && game_is_running) {
+        if (!fps(60.0f)) {
+            continue;
+        }
+
         game_update();
         vl_draw();
             game_draw();

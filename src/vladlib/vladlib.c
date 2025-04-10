@@ -122,14 +122,15 @@ void vl_draw_rect(VL_Rect *rect) {
 
     BindObjectOfData(&main_data);
 
-    add_uniform3f(BASE_2D_SHADER, "color", rect->color.r, rect->color.g, rect->color.b);
+    set_uniform3f(BASE_2D_SHADER, "color", rect->color.r, rect->color.g, rect->color.b);
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, NULL);
 
     unbind_vao();
 }
 
 // INPUT FUNCTIONS
-bool vl_left_pressed(void)  { return glfwGetKey(window,  GLFW_KEY_LEFT) == GLFW_PRESS; }
-bool vl_right_pressed(void) { return glfwGetKey(window, GLFW_KEY_RIGHT) == GLFW_PRESS; }
-bool vl_up_pressed(void)    { return glfwGetKey(window,    GLFW_KEY_UP) == GLFW_PRESS; }
-bool vl_down_pressed(void)  { return glfwGetKey(window,  GLFW_KEY_DOWN) == GLFW_PRESS; }
+bool vl_left_pressed(void)  { return glfwGetKey(window,  GLFW_KEY_LEFT)   == GLFW_PRESS; }
+bool vl_right_pressed(void) { return glfwGetKey(window, GLFW_KEY_RIGHT)   == GLFW_PRESS; }
+bool vl_up_pressed(void)    { return glfwGetKey(window,    GLFW_KEY_UP)   == GLFW_PRESS; }
+bool vl_down_pressed(void)  { return glfwGetKey(window,  GLFW_KEY_DOWN)   == GLFW_PRESS; }
+bool vl_esc_pressed(void)   { return glfwGetKey(window,  GLFW_KEY_ESCAPE) == GLFW_PRESS; }

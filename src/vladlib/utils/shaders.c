@@ -83,7 +83,7 @@ void add_uniform(uint32_t id, const char* name, float value) {
     glUniform1f(glGetUniformLocation(id,  name), value);
 }
 
-void add_uniform3f(uint32_t id, const char* name, float f1, float f2, float f3) {
+void set_uniform3f(uint32_t id, const char* name, float f1, float f2, float f3) {
     glUniform3f(glGetUniformLocation(id,  name), f1, f2, f3);
 }
 

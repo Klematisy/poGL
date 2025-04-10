@@ -16,4 +16,4 @@ uint32_t use_program(uint32_t shaderProgram);
 void delete_program(uint32_t id);
 
 void add_uniform1f(uint32_t id, const char* name, float value);
-void add_uniform3f(uint32_t id, const char* name, float f1, float f2, float f3);
+void set_uniform3f(uint32_t id, const char* name, float f1, float f2, float f3);
